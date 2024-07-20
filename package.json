@@ -10,7 +10,7 @@
     "@sap-cloud-sdk/http-client": "^3.9.0",
     "@sap-cloud-sdk/resilience": "^3.9.0",
     "@sap-cloud-sdk/util": "^3.9.0",
-    "@sap/cds": "^7.9.3",
+    "@sap/cds": "^7.9.4",
     "@sap/cds-hana": "^2",
     "@sap/cds-mtxs": "^1.9",
     "@sap/eslint-plugin-cds": "^2.6.4",
@@ -34,6 +34,7 @@
   },
   "scripts": {
     "start": "cds-serve",
+    "cds": "npm i @sap/cds",
     "undeploy": "cf undeploy invoices --delete-services --delete-service-keys --delete-service-brokers",
     "build": "rimraf resources mta_archives && mbt build --mtar archive",
     "deploy": "cf deploy mta_archives/archive.mtar --retries 1",
@@ -58,7 +59,16 @@
         "db": "hana",
         "auth": "xsuaa"
       },
-      "auth": "xsuaa"
+      "auth": "xsuaa",
+      "CE_PURCHASEORDER_0001": {
+        "kind": "odata",
+        "model": "srv/external/CE_PURCHASEORDER_0001",
+        "csrf": true,
+        "csrfInBatch": true,
+        "credentials": {
+          "destination": "PO_S4Public_New"
+        }
+      }
     }
   },
   "workspaces": [
