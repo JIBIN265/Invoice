@@ -14,36 +14,40 @@ using {
   sap.common.Criticality
 } from '../db/common.cds';
 
+//using {CE_PURCHASEORDER_0001 as external} from '../srv/external/CE_PURCHASEORDER_0001';
+
+// entity PurchaseOrder as
+//   projection on external.PurchaseOrder {
+//     key PurchaseOrder,
+//         CompanyCode
+//   };
+
 entity InvoiceEntity : cuid, managed, {
   @description: 'Product Group Association'
-    fiscalYear  : String(4);
-    companyCode : String(4);
-    documentDate : Date;
-    postingDate : Date;
-    supInvParty : String(10);
-    documentCurrency : String(3);
-    invGrossAmount : Decimal(13, 3);
-    to_InvoiceItem : Composition of many InvoiceItemEntity;
+  fiscalYear       : String(4);
+  companyCode      : String(4);
+  documentDate     : Date;
+  postingDate      : Date;
+  supInvParty      : String(10);
+  documentCurrency : String(3);
+  invGrossAmount   : Decimal(13, 3);
+  to_InvoiceItem   : Composition of many InvoiceItemEntity;
 };
 
 aspect InvoiceItemEntity : cuid, managed {
 
   @description: 'Product Restriction ID'
-  supplierInvoice : String(10);
-  fiscalYear  : String(4);
-  sup_InvoiceItem  : String(5);
-  purchaseOrder : String(10);
+  supplierInvoice   : String(10);
+  fiscalYear        : String(4);
+  sup_InvoiceItem   : String(5);
+  purchaseOrder     : String(10);
   purchaseOrderItem : String(5);
   referenceDocument : String(10);
   refDocFiscalYear  : String(4);
-  refDocItem  : String(5);
-  taxCode : String(3);
-  documentCurrency : String(3);
-  supInvItemAmount : Decimal(13, 3);
-  poQuantityUnit : String(3);
-  quantityPOUnit : Decimal(13, 3);
+  refDocItem        : String(5);
+  taxCode           : String(3);
+  documentCurrency  : String(3);
+  supInvItemAmount  : Decimal(13, 3);
+  poQuantityUnit    : String(3);
+  quantityPOUnit    : Decimal(13, 3);
 }
-
-
-
-
