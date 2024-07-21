@@ -2341,7 +2341,9 @@ entity CE_PURCHASEORDER_0001.PurchaseOrderItem {
 
       @cds.ambiguous         : 'missing on condition?'
       @Common.Composition    : true
-      _DeliveryAddress               :      Composition of one CE_PURCHASEORDER_0001.PurOrderItemDeliveryAddress;
+      _DeliveryAddress               :      Composition of one CE_PURCHASEORDER_0001.PurOrderItemDeliveryAddress
+                                              on  _DeliveryAddress.PurchaseOrder     = PurchaseOrder
+                                              and _DeliveryAddress.PurchaseOrderItem = PurchaseOrderItem;
 
       @cds.ambiguous         : 'missing on condition?'
       _PurchaseOrder                 :      Association to one CE_PURCHASEORDER_0001.PurchaseOrder
@@ -2349,23 +2351,33 @@ entity CE_PURCHASEORDER_0001.PurchaseOrderItem {
 
       @cds.ambiguous         : 'missing on condition?'
       @Common.Composition    : true
-      _PurchaseOrderInvoicingPlan    :      Composition of many CE_PURCHASEORDER_0001.PurchaseOrderInvoicingPlan;
+      _PurchaseOrderInvoicingPlan    :      Composition of many CE_PURCHASEORDER_0001.PurchaseOrderInvoicingPlan
+                                              on  _PurchaseOrderInvoicingPlan.PurchaseOrder     = PurchaseOrder
+                                              and _PurchaseOrderInvoicingPlan.PurchaseOrderItem = PurchaseOrderItem;
 
       @cds.ambiguous         : 'missing on condition?'
       @Common.Composition    : true
-      _PurchaseOrderItemNote         :      Composition of many CE_PURCHASEORDER_0001.PurchaseOrderItemNote;
+      _PurchaseOrderItemNote         :      Composition of many CE_PURCHASEORDER_0001.PurchaseOrderItemNote
+                                              on  _PurchaseOrderItemNote.PurchaseOrder     = PurchaseOrder
+                                              and _PurchaseOrderItemNote.PurchaseOrderItem = PurchaseOrderItem;
 
       @cds.ambiguous         : 'missing on condition?'
       @Common.Composition    : true
-      _PurchaseOrderScheduleLineTP   :      Composition of many CE_PURCHASEORDER_0001.PurchaseOrderScheduleLine;
+      _PurchaseOrderScheduleLineTP   :      Composition of many CE_PURCHASEORDER_0001.PurchaseOrderScheduleLine
+                                              on  _PurchaseOrderScheduleLineTP.PurchaseOrder     = PurchaseOrder
+                                              and _PurchaseOrderScheduleLineTP.PurchaseOrderItem = PurchaseOrderItem;
 
       @cds.ambiguous         : 'missing on condition?'
       @Common.Composition    : true
-      _PurOrdAccountAssignment       :      Composition of many CE_PURCHASEORDER_0001.PurchaseOrderAccountAssignment;
+      _PurOrdAccountAssignment       :      Composition of many CE_PURCHASEORDER_0001.PurchaseOrderAccountAssignment
+                                              on  _PurOrdAccountAssignment.PurchaseOrder     = PurchaseOrder
+                                              and _PurOrdAccountAssignment.PurchaseOrderItem = PurchaseOrderItem;
 
       @cds.ambiguous         : 'missing on condition?'
       @Common.Composition    : true
-      _PurOrdPricingElement          :      Composition of many CE_PURCHASEORDER_0001.PurOrderItemPricingElement;
+      _PurOrdPricingElement          :      Composition of many CE_PURCHASEORDER_0001.PurOrderItemPricingElement
+                                              on  _PurOrdPricingElement.PurchaseOrder     = PurchaseOrder
+                                              and _PurOrdPricingElement.PurchaseOrderItem = PurchaseOrderItem;
 };
 
 @cds.external                                                    : true
