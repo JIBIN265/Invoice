@@ -12,21 +12,44 @@ class InvCatalogService extends cds.ApplicationService {
         const {
             Invoice,
             InvoiceItem,
-            PurchaseOrder
-
+            PurchaseOrder,
+            PurchaseOrderItem
         } = this.entities;
         const db = await cds.connect.to("db");
-
-
-
-        this.on('READ', PurchaseOrder, async req => {
+        
+        this.on('READ', [PurchaseOrder, PurchaseOrderItem], async (req) => {
             const pos = await cds.connect.to('CE_PURCHASEORDER_0001');
-            console.log(req.query);
-            const record2 = await pos.run(req.query);
-            console.log(record2);
-            return record2;
-            //return pos.run(req.query);
+            return await pos.run(req.query);
         });
+        
+        // this.on("READ", 'PurchaseOrder', async (req) => {
+        //     // The API Sandbox returns alot of business partners with empty names.
+        //     // We don't want them in our application
+        //     // req.query.where("LastName <> '' and FirstName <> '' ");
+        //     console.log('here');
+        //     const pos = await cds.connect.to('CE_PURCHASEORDER_0001');
+        //     const result = await pos.run(req.query);
+        //     console.log('result');
+        //     return result;
+        // });
+
+
+        // this.on('READ', 'PurchaseOrderItem', async (req) => {
+        //     const pos = await cds.connect.to('CE_PURCHASEORDER_0001');
+        //     return pos.run(req.query);
+        // });
+
+
+
+
+        // this.on('READ', PurchaseOrder, async req => {
+        //     const pos = await cds.connect.to('CE_PURCHASEORDER_0001');
+        //     console.log(req.query);
+        //     const record2 = await pos.run(req.query);
+        //     console.log(record2);
+        //     return record2;
+        //     //return pos.run(req.query);
+        // });
 
         this.on('doThreeWayMatch', 'Invoice', async req => {
 
