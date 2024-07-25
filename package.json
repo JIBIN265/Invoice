@@ -71,6 +71,16 @@
           "path": "/sap/opu/odata4/sap/api_purchaseorder_2/srvd_a2x/sap/purchaseorder/0001"
         }
       },
+      "API_MATERIAL_DOCUMENT_SRV": {
+        "kind": "odata-v2",
+        "model": "srv/external/API_MATERIAL_DOCUMENT_SRV",
+        "csrf": true,
+        "csrfInBatch": true,
+        "credentials": {
+          "destination": "S4Public",
+          "path": "/sap/opu/odata/sap/API_MATERIAL_DOCUMENT_SRV"
+        }
+      },
       "CE_PURCHASEORDER_0002": {
         "kind": "odata",
         "model": "srv/external/CE_PURCHASEORDER_0001",
@@ -81,14 +91,14 @@
           "url": "https://sandbox.api.sap.com/s4hanacloud/sap/opu/odata4/sap/api_purchaseorder_2/srvd_a2x/sap/purchaseorder/0001"
         }
       },
-      "API_MATERIAL_DOCUMENT_SRV": {
+      "API_MATERIAL_DOCUMENT_SRV1": {
         "kind": "odata-v2",
         "model": "srv/external/API_MATERIAL_DOCUMENT_SRV",
-        "csrf": true,
-        "csrfInBatch": true,
         "credentials": {
-          "destination": "S4Public",
-          "path": "/sap/opu/odata/sap/API_MATERIAL_DOCUMENT_SRV/A_MaterialDocumentHeader"
+          "headers": {
+            "APIKey": "Dl712KTWN8eKOs4eV2lJJsIkqi0ohBHG"
+          },
+          "url": "https://sandbox.api.sap.com/s4hanacloud/sap/opu/odata/sap/API_MATERIAL_DOCUMENT_SRV"
         }
       }
     }

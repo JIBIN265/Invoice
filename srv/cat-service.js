@@ -16,48 +16,22 @@ class InvCatalogService extends cds.ApplicationService {
             PurchaseOrderItem,
             A_MaterialDocumentHeader
         } = this.entities;
-        const db = await cds.connect.to("db");
-        
+        const db await cds.connect.to("db");
+
         this.on('READ', [PurchaseOrder, PurchaseOrderItem], async (req) => {
             const pos = await cds.connect.to('CE_PURCHASEORDER_0001');
             return await pos.run(req.query);
         });
-        
+
         this.on('READ', A_MaterialDocumentHeader, async (req) => {
             const grd = await cds.connect.to('API_MATERIAL_DOCUMENT_SRV');
             return await grd.run(req.query);
         });
 
-        // this.on("READ", 'PurchaseOrder', async (req) => {
-        //     // The API Sandbox returns alot of business partners with empty names.
-        //     // We don't want them in our application
-        //     // req.query.where("LastName <> '' and FirstName <> '' ");
-        //     console.log('here');
-        //     const pos = await cds.connect.to('CE_PURCHASEORDER_0001');
-        //     const result = await pos.run(req.query);
-        //     console.log('result');
-        //     return result;
-        // });
-
-
-        // this.on('READ', 'PurchaseOrderItem', async (req) => {
-        //     const pos = await cds.connect.to('CE_PURCHASEORDER_0001');
-        //     return pos.run(req.query);
-        // });
-
-
-
-
-        // this.on('READ', PurchaseOrder, async req => {
-        //     const pos = await cds.connect.to('CE_PURCHASEORDER_0001');
-        //     console.log(req.query);
-        //     const record2 = await pos.run(req.query);
-        //     console.log(record2);
-        //     return record2;
-        //     //return pos.run(req.query);
-        // });
 
         this.on('doThreeWayMatch', 'Invoice', async req => {
+
+            // For fetching Purchase Order details
             const pos = await cds.connect.to('CE_PURCHASEORDER_0001');
             console.log("Three way Verification Code Check");
             const { ID } = req.params[0];
@@ -66,17 +40,53 @@ class InvCatalogService extends cds.ApplicationService {
             const recordItem = await db.run(SELECT.from(InvoiceItem).where({ up__ID: ID }));
             const { purchaseOrder } = recordItem[0];
 
-            const recordS4 = await pos.run(SELECT.one.from(PurchaseOrder).where({ PurchaseOrder : purchaseOrder }));
-            if (!recordS4) {
+            const purchaseS4 = await pos.run(SELECT.one.from(PurchaseOrder).where({ PurchaseOrder: purchaseOrder }));
+            if (!purchaseS4) {
                 return req.reject(404, `Purchase Order ${purchaseOrder} not found`);//validation 1
             }
-            const recordS4Item = await pos.run(SELECT.from(PurchaseOrderItem).where({ PurchaseOrder : purchaseOrder }));
+            const purchaseS4Item = await pos.run(SELECT.from(PurchaseOrderItem).where({ PurchaseOrder: purchaseOrder }));
+
+            console.log(purchaseS4);
+            console.log(purchaseS4Item);
 
 
+            // For fetching Material Documents
+            const grs = await cds.connect.to('API_MATERIAL_DOCUMENT_SRV');
+            //const { ID } = req.params[0];
+            //if (!ID) { return; }
+            //const record = await db.run(SELECT.one.from(Invoice).where({ ID: ID }));
+            // const recordItem = await db.run(SELECT.from(InvoiceItem).where({ up__ID: ID }));
+            // const { ReferenceDocument } = recordItem[0];
 
-            console.log(recordS4);
-            console.log(recordS4Item);
-            console.log(recordS4);
+            //const materialS4 = await grs.run(SELECT.one.from(A_MaterialDocumentHeader).where({ ReferenceDocument: ReferenceDocument }));
+            //const materialS4 = await grs.run(SELECT.one.from(A_MaterialDocumentHeader).where(`ReferenceDocument eq '${ReferenceDocument}'`));
+            // if (!materialS4) {
+            //     return req.reject(404, `Material Document ${ReferenceDocument} not found`);//validation 1
+            // }
+            //const purchaseS4Item = await pos.run(SELECT.from(PurchaseOrderItem).where({ PurchaseOrder: purchaseOrder }));
+
+            //const { purchaseOrder } = recordItem[0];
+            let materialS4;
+            try {
+                console.log(`Attempting to fetch Material Document for Purchase Order: ${purchaseOrder}`);
+                materialS4 = await grs.run(
+                    SELECT.one.from(A_MaterialDocumentHeader)
+                        .where({ ReferenceDocument: purchaseOrder })
+                );
+                if (!materialS4) {
+                    console.log(`No Material Document found for Purchase Order ${purchaseOrder}`);
+                    // Handle the case when no document is found
+                } else {
+                    console.log(`Material Document found for Purchase Order ${purchaseOrder}:`, materialS4);
+                }
+            } catch (error) {
+                console.error(`Error fetching Material Document for Purchase Order ${purchaseOrder}:`, error);
+                // Handle the error appropriately
+            }
+
+            console.log(materialS4);
+            //console.log(purchaseS4Item);
+
         });
 
         return super.init();
