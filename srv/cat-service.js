@@ -16,7 +16,7 @@ class InvCatalogService extends cds.ApplicationService {
             PurchaseOrderItem,
             A_MaterialDocumentHeader
         } = this.entities;
-        const db await cds.connect.to("db");
+        const db = await cds.connect.to("db");
 
         this.on('READ', [PurchaseOrder, PurchaseOrderItem], async (req) => {
             const pos = await cds.connect.to('CE_PURCHASEORDER_0001');
@@ -52,20 +52,6 @@ class InvCatalogService extends cds.ApplicationService {
 
             // For fetching Material Documents
             const grs = await cds.connect.to('API_MATERIAL_DOCUMENT_SRV');
-            //const { ID } = req.params[0];
-            //if (!ID) { return; }
-            //const record = await db.run(SELECT.one.from(Invoice).where({ ID: ID }));
-            // const recordItem = await db.run(SELECT.from(InvoiceItem).where({ up__ID: ID }));
-            // const { ReferenceDocument } = recordItem[0];
-
-            //const materialS4 = await grs.run(SELECT.one.from(A_MaterialDocumentHeader).where({ ReferenceDocument: ReferenceDocument }));
-            //const materialS4 = await grs.run(SELECT.one.from(A_MaterialDocumentHeader).where(`ReferenceDocument eq '${ReferenceDocument}'`));
-            // if (!materialS4) {
-            //     return req.reject(404, `Material Document ${ReferenceDocument} not found`);//validation 1
-            // }
-            //const purchaseS4Item = await pos.run(SELECT.from(PurchaseOrderItem).where({ PurchaseOrder: purchaseOrder }));
-
-            //const { purchaseOrder } = recordItem[0];
             let materialS4;
             try {
                 console.log(`Attempting to fetch Material Document for Purchase Order: ${purchaseOrder}`);
