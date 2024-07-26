@@ -41,6 +41,21 @@ annotate service.Invoice with @(
                 Label: 'Invoice Gross Amount',
                 Value: invGrossAmount,
             },
+            {
+                $Type: 'UI.DataField',
+                Label: 'Status',
+                Value: status,
+            },
+            {
+                $Type: 'UI.DataField',
+                Label: 'Invoice Number',
+                Value: newInvoice,
+            },
+            {
+                $Type: 'UI.DataField',
+                Label: 'Comments',
+                Value: comments,
+            },
         ],
     },
     UI.Facets                    : [
@@ -98,6 +113,17 @@ annotate service.Invoice with @(
             Label: 'Invoice Gross Amount',
             Value: invGrossAmount,
         },
+        {
+            $Type: 'UI.DataField',
+            Label: 'Status',
+            Value: status,
+        },
+        {
+            $Type: 'UI.DataField',
+            Label: 'Invoice Number',
+            Value: newInvoice,
+        },
+
     ],
 );
 
@@ -109,6 +135,9 @@ annotate service.Invoice with @(UI.SelectionFields: [
     supInvParty,
     documentCurrency,
     invGrossAmount,
+    status,
+    newInvoice,
+    comments,
 ]);
 
 annotate service.Invoice with {
