@@ -148,6 +148,9 @@ annotate service.Invoice with {
     supInvParty      @Common.Label: 'Supplier Invoice Party';
     documentCurrency @Common.Label: 'Document Currency';
     invGrossAmount   @Common.Label: 'Invoice Gross Amount';
+    status           @Common.Label: 'Status';
+    newInvoice       @Common.Label: 'Invoice Number';
+    comments         @Common.Label: 'Comments';
 };
 
 annotate service.InvoiceItem with @(UI.LineItem #InvoiceItems: [

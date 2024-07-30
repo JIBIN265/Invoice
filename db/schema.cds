@@ -31,7 +31,7 @@ entity InvoiceEntity : cuid, managed, {
   supInvParty      : String(10);
   documentCurrency : String(3);
   invGrossAmount   : Decimal(13, 3);
-  status           : String(15); 
+  status           : String(35); 
   comments         : String(150);
   newInvoice       : String(10);
   to_InvoiceItem   : Composition of many InvoiceItemEntity;
