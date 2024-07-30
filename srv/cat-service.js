@@ -1,8 +1,3 @@
-/* eslint-disable no-empty */
-/* eslint-disable no-unused-vars */
-/* eslint-disable no-debugger */
-
-// Import necessary modules
 const cds = require("@sap/cds");
 const { SELECT, INSERT, UPDATE } = cds.ql;
 
@@ -13,171 +8,150 @@ class InvCatalogService extends cds.ApplicationService {
             InvoiceItem,
             PurchaseOrder,
             PurchaseOrderItem,
-            A_MaterialDocumentHeader
+            A_MaterialDocumentHeader,
+            A_MaterialDocumentItem
         } = this.entities;
-        const db = await cds.connect.to("db");
-
-        // Existing code for READ operations...
 
         this.on('doThreeWayMatch', 'Invoice', async req => {
             try {
                 console.log("Three way Verification Code Check");
                 const { ID } = req.params[0];
                 if (!ID) {
-                    return req.reply({
-                        statusCode: 400,
-                        body: {
-                            id: null,
-                            status: "Invoice ID is required"
-                        }
-                    });
+                    return req.error(400, "Invoice ID is required");
                 }
 
-                const record = await db.run(SELECT.one.from(Invoice).where({ ID: ID }));
-                if (!record) {
-                    return req.reply({
-                        statusCode: 404,
-                        body: {
-                            id: ID,
-                            status: `Invoice with ID ${ID} not found`
-                        }
-                    });
-                }
-
-                const recordItems = await db.run(SELECT.from(InvoiceItem).where({ up__ID: ID }));
-                if (!recordItems || recordItems.length === 0) {
-                    return req.reply({
-                        statusCode: 404,
-                        body: {
-                            id: ID,
-                            status: `No items found for Invoice ${ID}`
-                        }
-                    });
-                }
-
+                const db = await cds.connect.to("db");
                 const pos = await cds.connect.to('CE_PURCHASEORDER_0001');
                 const grs = await cds.connect.to('API_MATERIAL_DOCUMENT_SRV');
 
-                let matchResults = [];
+                const invoice = await db.run(SELECT.one.from(Invoice).where({ ID: ID }));
+                if (!invoice) {
+                    return req.error(404, `Invoice with ID ${ID} not found`);
+                }
 
-                for (const invoiceItem of recordItems) {
+                const invoiceItems = await db.run(SELECT.from(InvoiceItem).where({ up__ID: ID }));
+                if (!invoiceItems || invoiceItems.length === 0) {
+                    return req.error(404, `No items found for Invoice ${ID}`);
+                }
+
+                let allItemsMatched = true;
+                let itemCounter = 10;
+                let result = {
+                    FiscalYear: "",
+                    CompanyCode: "",
+                    DocumentDate: null,
+                    PostingDate: null,
+                    SupplierInvoiceIDByInvcgParty: "",
+                    DocumentCurrency: "",
+                    InvoiceGrossAmount: invoice.invGrossAmount,
+                    Status: "",  // Status will be set here
+                    to_SuplrInvcItemPurOrdRef: []
+                };
+
+                for (const invoiceItem of invoiceItems) {
                     const { purchaseOrder, purchaseOrderItem, sup_InvoiceItem, quantityPOUnit, supInvItemAmount } = invoiceItem;
 
                     // Fetch PO details
-                    let purchaseOrderData, purchaseOrderItemData;
-                    try {
-                        purchaseOrderData = await pos.run(SELECT.one.from(PurchaseOrder).where({ PurchaseOrder: purchaseOrder }));
-                        if (!purchaseOrderData) {
-                            matchResults.push({ item: sup_InvoiceItem, status: `Failed: PO ${purchaseOrder} not found` });
-                            continue;
-                        }
+                    const purchaseOrderData = await pos.run(SELECT.one.from(PurchaseOrder).where({ PurchaseOrder: purchaseOrder }));
+                    if (!purchaseOrderData) {
+                        allItemsMatched = false;
+                        continue;
+                    }
 
-                        purchaseOrderItemData = await pos.run(SELECT.one.from(PurchaseOrderItem).where({ PurchaseOrder: purchaseOrder, PurchaseOrderItem: purchaseOrderItem }));
-                        if (!purchaseOrderItemData) {
-                            matchResults.push({ item: sup_InvoiceItem, status: `Failed: PO Item ${purchaseOrderItem} not found` });
-                            continue;
-                        }
-                    } catch (error) {
-                        console.error(`Error fetching PO data: ${error.message}`);
-                        matchResults.push({ item: sup_InvoiceItem, status: `Error: Fetching PO data failed - ${error.message}` });
+                    const purchaseOrderItemData = await pos.run(SELECT.one.from(PurchaseOrderItem).where({ PurchaseOrder: purchaseOrder, PurchaseOrderItem: purchaseOrderItem }));
+                    if (!purchaseOrderItemData) {
+                        allItemsMatched = false;
                         continue;
                     }
 
                     // Fetch GR details
-                    let materialDocumentData, materialItemData;
-                    try {
-                        materialDocumentData = await grs.run(
-                            SELECT.one.from('A_MaterialDocumentHeader')
-                                .where({ ReferenceDocument: purchaseOrder })
+                    const materialDocumentData = await grs.run(
+                        SELECT.one.from(A_MaterialDocumentHeader)
+                            .where({ ReferenceDocument: purchaseOrder })
+                    );
+
+                    let materialItemData;
+                    if (materialDocumentData) {
+                        materialItemData = await grs.run(
+                            SELECT.one.from(A_MaterialDocumentItem)
+                                .where({
+                                    MaterialDocument: materialDocumentData.MaterialDocument,
+                                    MaterialDocumentYear: materialDocumentData.MaterialDocumentYear,
+                                    PurchaseOrderItem: purchaseOrderItem
+                                })
                         );
-
-                        if (materialDocumentData) {
-                            materialItemData = await grs.run(
-                                SELECT.one.from('A_MaterialDocumentItem')
-                                    .where({
-                                        MaterialDocument: materialDocumentData.MaterialDocument,
-                                        MaterialDocumentYear: materialDocumentData.MaterialDocumentYear,
-                                        PurchaseOrderItem: purchaseOrderItem
-                                    })
-                            );
-                        }
-                    } catch (error) {
-                        console.error(`Error fetching GR data: ${error.message}`);
-                        matchResults.push({ item: sup_InvoiceItem, status: `Error: Fetching GR data failed - ${error.message}` });
-                        continue;
                     }
 
-                    // Perform three-way matching
-                    let matchStatus = 'Passed';
-                    let matchReasons = [];
+                    // Determine item status
+                    let itemStatus = 'Matched';
+                    let statusReasons = [];
 
-                    // Check quantity
                     if (quantityPOUnit !== purchaseOrderItemData.OrderQuantity) {
-                        matchStatus = 'Failed';
-                        matchReasons.push('Quantity mismatch with PO');
+                        itemStatus = 'Discrepancy';
+                        statusReasons.push('Quantity mismatch with PO');
                     }
 
-                    // Check amount
                     if (supInvItemAmount !== purchaseOrderItemData.NetPriceAmount) {
-                        matchStatus = 'Failed';
-                        matchReasons.push('Amount mismatch with PO');
+                        itemStatus = 'Discrepancy';
+                        statusReasons.push('Amount mismatch with PO');
                     }
 
-                    // Check GR
                     if (!materialItemData) {
-                        matchStatus = 'Failed';
-                        matchReasons.push('No matching Goods Receipt found');
+                        itemStatus = 'Discrepancy';
+                        statusReasons.push('No matching Goods Receipt found');
                     } else if (quantityPOUnit !== Number(materialItemData.QuantityInBaseUnit)) {
-                        matchStatus = 'Failed';
-                        matchReasons.push('Quantity mismatch with GR');
+                        itemStatus = 'Discrepancy';
+                        statusReasons.push('Quantity mismatch with GR');
                     }
 
-                    matchResults.push({
-                        item: sup_InvoiceItem,
-                        status: matchStatus === 'Passed' ? 'Passed' : `Failed: ${matchReasons.join(', ')}`
-                    });
-                }
-
-                // Update the invoice status based on the match results
-                const overallStatus = matchResults.every(result => result.status === 'Passed') ? 'Matched' : 'Discrepancy';
-
-                try {
-                    const updateResult = await db.run(UPDATE(Invoice).set({ status: overallStatus }).where({ ID: ID }));
-                    console.log(`Update result for Invoice ${ID}:`, updateResult);
-
-                    if (updateResult === 0) {
-                        console.warn(`No rows updated for Invoice ${ID}. Ensure 'status' field exists in the Invoice entity.`);
+                    if (itemStatus !== 'Matched') {
+                        allItemsMatched = false;
                     }
-                } catch (error) {
-                    console.error(`Error updating Invoice ${ID} status:`, error);
-                    return req.reply({
-                        statusCode: 500,
-                        body: {
-                            id: ID,
-                            status: `Error updating invoice status: ${error.message}`
-                        }
+
+                    // Populate result object
+                    result.FiscalYear = materialItemData ? materialItemData.ReferenceDocumentFiscalYear : "";
+                    result.CompanyCode = purchaseOrderData.CompanyCode;
+                    result.DocumentDate = materialDocumentData ? materialDocumentData.DocumentDate : null;
+                    result.PostingDate = materialDocumentData ? materialDocumentData.PostingDate : null;
+                    result.SupplierInvoiceIDByInvcgParty = purchaseOrderData.SupplierInvoiceIDByInvcgParty;
+                    result.DocumentCurrency = purchaseOrderData.DocumentCurrency;
+                    result.to_SuplrInvcItemPurOrdRef.push({
+                        SupplierInvoice: invoiceItem.supplierInvoice,
+                        FiscalYear: materialItemData ? materialItemData.ReferenceDocumentFiscalYear : "",
+                        SupplierInvoiceItem: itemCounter.toString(),
+                        PurchaseOrder: purchaseOrder,
+                        PurchaseOrderItem: purchaseOrderItem,
+                        ReferenceDocument: materialItemData ? materialItemData.MaterialDocument : "",
+                        ReferenceDocumentFiscalYear: materialItemData ? materialItemData.ReferenceDocumentFiscalYear : "",
+                        ReferenceDocumentItem: materialItemData ? materialItemData.MaterialDocumentItem : "",
+                        TaxCode: purchaseOrderItemData.TaxCode,
+                        DocumentCurrency: purchaseOrderItemData.DocumentCurrency,
+                        SupplierInvoiceItemAmount: supInvItemAmount,
+                        PurchaseOrderQuantityUnit: purchaseOrderItemData.PurchaseOrderQuantityUnit,
+                        QuantityInPurchaseOrderUnit: purchaseOrderItemData.OrderQuantity,
                     });
+
+                    itemCounter += 10;
                 }
 
-                // Return OData compliant response
+                // Determine overall invoice status and update the database
+                const overallStatus = allItemsMatched ? 'Matched' : 'Discrepancy';
+                await db.run(UPDATE(Invoice).set({ status: overallStatus }).where({ ID: ID }));
+
+                // Set the status in the result object
+                result.Status = overallStatus;
+
+                // Set the result in req.data
+                req.data = result;
+
                 return req.reply({
                     statusCode: 200,
-                    body: {
-                        id: ID,
-                        status: overallStatus,
-                        itemResults: matchResults
-                    }
+                    body: result
                 });
 
             } catch (error) {
                 console.error("Unexpected error in doThreeWayMatch:", error);
-                return req.reply({
-                    statusCode: 500,
-                    body: {
-                        id: req.params[0].ID || null,
-                        status: `Unexpected error: ${error.message}`
-                    }
-                });
+                return req.error(500, `Unexpected error: ${error.message}`);
             }
         });
 
