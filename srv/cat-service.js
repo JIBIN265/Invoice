@@ -12,6 +12,10 @@ class InvCatalogService extends cds.ApplicationService {
             A_MaterialDocumentItem
         } = this.entities;
 
+        const db = await cds.connect.to("db");
+        const pos = await cds.connect.to('CE_PURCHASEORDER_0001');
+        const grs = await cds.connect.to('API_MATERIAL_DOCUMENT_SRV');
+
         this.on('doThreeWayMatch', 'Invoice', async req => {
             try {
                 console.log("Three way Verification Code Check");
@@ -20,15 +24,13 @@ class InvCatalogService extends cds.ApplicationService {
                     return req.error(400, "Invoice ID is required");
                 }
 
-                const db = await cds.connect.to("db");
-                const pos = await cds.connect.to('CE_PURCHASEORDER_0001');
-                const grs = await cds.connect.to('API_MATERIAL_DOCUMENT_SRV');
-
+                // Fetch invoice
                 const invoice = await db.run(SELECT.one.from(Invoice).where({ ID: ID }));
                 if (!invoice) {
                     return req.error(404, `Invoice with ID ${ID} not found`);
                 }
 
+                // Fetch invoice items
                 const invoiceItems = await db.run(SELECT.from(InvoiceItem).where({ up__ID: ID }));
                 if (!invoiceItems || invoiceItems.length === 0) {
                     return req.error(404, `No items found for Invoice ${ID}`);
@@ -36,6 +38,7 @@ class InvCatalogService extends cds.ApplicationService {
 
                 let allItemsMatched = true;
                 let itemCounter = 10;
+                let allStatusReasons = [];
                 let result = {
                     FiscalYear: "",
                     CompanyCode: "",
@@ -44,7 +47,7 @@ class InvCatalogService extends cds.ApplicationService {
                     SupplierInvoiceIDByInvcgParty: "",
                     DocumentCurrency: "",
                     InvoiceGrossAmount: invoice.invGrossAmount,
-                    Status: "",  // Status will be set here
+                    Status: "",
                     to_SuplrInvcItemPurOrdRef: []
                 };
 
@@ -55,12 +58,14 @@ class InvCatalogService extends cds.ApplicationService {
                     const purchaseOrderData = await pos.run(SELECT.one.from(PurchaseOrder).where({ PurchaseOrder: purchaseOrder }));
                     if (!purchaseOrderData) {
                         allItemsMatched = false;
+                        allStatusReasons.push(`Item ${sup_InvoiceItem}: Purchase Order not found`);
                         continue;
                     }
 
                     const purchaseOrderItemData = await pos.run(SELECT.one.from(PurchaseOrderItem).where({ PurchaseOrder: purchaseOrder, PurchaseOrderItem: purchaseOrderItem }));
                     if (!purchaseOrderItemData) {
                         allItemsMatched = false;
+                        allStatusReasons.push(`Item ${sup_InvoiceItem}: Purchase Order Item not found`);
                         continue;
                     }
 
@@ -106,6 +111,9 @@ class InvCatalogService extends cds.ApplicationService {
 
                     if (itemStatus !== 'Matched') {
                         allItemsMatched = false;
+                        if (statusReasons.length > 0) {
+                            allStatusReasons.push(`Item ${sup_InvoiceItem}: ${statusReasons.join(', ')}`);
+                        }
                     }
 
                     // Populate result object
@@ -136,18 +144,17 @@ class InvCatalogService extends cds.ApplicationService {
 
                 // Determine overall invoice status and update the database
                 const overallStatus = allItemsMatched ? 'Matched' : 'Discrepancy';
-                await db.run(UPDATE(Invoice).set({ status: overallStatus }).where({ ID: ID }));
+                let statusWithReasons = overallStatus;
+                if (overallStatus === 'Discrepancy') {
+                    statusWithReasons += `: ${allStatusReasons.join('; ')}`;
+                }
+                await db.run(UPDATE(Invoice).set({ status: statusWithReasons }).where({ ID: ID }));
 
                 // Set the status in the result object
-                result.Status = overallStatus;
+                result.Status = statusWithReasons;
 
-                // Set the result in req.data
-                req.data = result;
-
-                return req.reply({
-                    statusCode: 200,
-                    body: result
-                });
+                // Send response
+                return result;
 
             } catch (error) {
                 console.error("Unexpected error in doThreeWayMatch:", error);

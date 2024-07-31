@@ -1,6 +1,6 @@
 {
   "name": "invoices",
-  "version": "1.0.7",
+  "version": "1.0.12",
   "description": "Supplier Invoice",
   "repository": "<Add your repository here>",
   "license": "UNLICENSED",
@@ -60,12 +60,15 @@
         "db": "hana",
         "auth": "xsuaa"
       },
-      "auth": "xsuaa",
+      "[hybrid]": {
+        "db": "hana",
+        "auth": "dummy"
+      },
       "CE_PURCHASEORDER_0001": {
         "kind": "odata",
-        "model": "srv/external/CE_PURCHASEORDER_0001",
         "csrf": true,
         "csrfInBatch": true,
+        "model": "srv/external/CE_PURCHASEORDER_0001",
         "credentials": {
           "destination": "S4Public",
           "path": "/sap/opu/odata4/sap/api_purchaseorder_2/srvd_a2x/sap/purchaseorder/0001"
@@ -73,32 +76,12 @@
       },
       "API_MATERIAL_DOCUMENT_SRV": {
         "kind": "odata-v2",
-        "model": "srv/external/API_MATERIAL_DOCUMENT_SRV",
         "csrf": true,
         "csrfInBatch": true,
+        "model": "srv/external/API_MATERIAL_DOCUMENT_SRV",
         "credentials": {
           "destination": "S4Public",
           "path": "/sap/opu/odata/sap/API_MATERIAL_DOCUMENT_SRV"
-        }
-      },
-      "CE_PURCHASEORDER_0002": {
-        "kind": "odata",
-        "model": "srv/external/CE_PURCHASEORDER_0001",
-        "credentials": {
-          "headers": {
-            "APIKey": "Dl712KTWN8eKOs4eV2lJJsIkqi0ohBHG"
-          },
-          "url": "https://sandbox.api.sap.com/s4hanacloud/sap/opu/odata4/sap/api_purchaseorder_2/srvd_a2x/sap/purchaseorder/0001"
-        }
-      },
-      "API_MATERIAL_DOCUMENT_SRV1": {
-        "kind": "odata-v2",
-        "model": "srv/external/API_MATERIAL_DOCUMENT_SRV",
-        "credentials": {
-          "headers": {
-            "APIKey": "Dl712KTWN8eKOs4eV2lJJsIkqi0ohBHG"
-          },
-          "url": "https://sandbox.api.sap.com/s4hanacloud/sap/opu/odata/sap/API_MATERIAL_DOCUMENT_SRV"
         }
       }
     }

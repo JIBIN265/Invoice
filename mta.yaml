@@ -1,7 +1,7 @@
 _schema-version: "3.1"
 ID: invoices
 description: Supplier Invoice
-version: 1.0.6
+version: 1.0.12
 modules:
 - name: invoices-srv
   type: nodejs
@@ -10,6 +10,8 @@ modules:
   - name: invoices-db
   - name: invoices-auth
   - name: invoices-logs
+  - name: invoices-connectivity
+  - name: invoices-destination-service
   provides:
   - name: srv-api
     properties:
@@ -161,6 +163,11 @@ resources:
   type: org.cloudfoundry.managed-service
   parameters:
     service: application-logs
+    service-plan: lite
+- name: invoices-connectivity
+  type: org.cloudfoundry.managed-service
+  parameters:
+    service: connectivity
     service-plan: lite
 parameters:
   deploy_mode: html5-repo
