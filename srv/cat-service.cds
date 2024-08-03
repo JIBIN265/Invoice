@@ -21,28 +21,30 @@ service InvCatalogService @(requires: 'authenticated-user') {
     entity Invoice                  as projection on persistence.InvoiceEntity
         actions {
             action doThreeWayMatch() returns {
-                FiscalYear : String;
-                CompanyCode : String;
+                FiscalYear : String(4);
+                CompanyCode : String(4);
                 DocumentDate : Date;
                 PostingDate : Date;
-                SupplierInvoiceIDByInvcgParty : String;
-                DocumentCurrency : String;
-                InvoiceGrossAmount : Decimal;
-                Status : String;
+                SupplierInvoiceIDByInvcgParty : String(10);
+                DocumentCurrency : String(3);
+                InvoiceGrossAmount : String;
+                status : String(200);
+                comments : String(150);
+                newInvoice : String(10);
                 to_SuplrInvcItemPurOrdRef : many {
-                    SupplierInvoice : String;
-                    FiscalYear : String;
-                    SupplierInvoiceItem : String;
-                    PurchaseOrder : String;
-                    PurchaseOrderItem : String;
-                    ReferenceDocument : String;
-                    ReferenceDocumentFiscalYear : String;
-                    ReferenceDocumentItem : String;
-                    TaxCode : String;
-                    DocumentCurrency : String;
-                    SupplierInvoiceItemAmount : Decimal;
-                    PurchaseOrderQuantityUnit : String;
-                    QuantityInPurchaseOrderUnit : Decimal;
+                    SupplierInvoice : String(10);
+                    FiscalYear : String(4);
+                    SupplierInvoiceItem : String(5);
+                    PurchaseOrder : String(10);
+                    PurchaseOrderItem : String(5);
+                    ReferenceDocument : String(10);
+                    ReferenceDocumentFiscalYear : String(4);
+                    ReferenceDocumentItem : String(5);
+                    TaxCode : String(3);
+                    DocumentCurrency : String(3);
+                    SupplierInvoiceItemAmount : String;
+                    PurchaseOrderQuantityUnit : String(3);
+                    QuantityInPurchaseOrderUnit : String;
                 }
             };
         };

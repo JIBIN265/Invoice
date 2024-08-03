@@ -46,8 +46,8 @@ class InvCatalogService extends cds.ApplicationService {
                     PostingDate: null,
                     SupplierInvoiceIDByInvcgParty: "",
                     DocumentCurrency: "",
-                    InvoiceGrossAmount: invoice.invGrossAmount,
-                    Status: "",
+                    InvoiceGrossAmount: invoice.invGrossAmount.toString(),
+                    status: "",
                     to_SuplrInvcItemPurOrdRef: []
                 };
 
@@ -91,28 +91,46 @@ class InvCatalogService extends cds.ApplicationService {
                     let itemStatus = 'Matched';
                     let statusReasons = [];
 
-                    if (quantityPOUnit !== purchaseOrderItemData.OrderQuantity) {
+                    // Convert quantityPOUnit from string to number
+                    const quantityPOUnitNumber = Number(quantityPOUnit);
+
+                    // Ensure supInvItemAmount and purchaseOrderItemData.NetPriceAmount are numbers
+                    const supInvItemAmountNumber = Number(supInvItemAmount);
+                    const netPriceAmountNumber = Number(purchaseOrderItemData.NetPriceAmount);
+
+                    // Initialize statusReasons if not already initialized
+                    if (!Array.isArray(statusReasons)) {
+                        statusReasons = [];
+                    }
+
+                    // Compare quantityPOUnit with purchaseOrderItemData.OrderQuantity
+                    if (quantityPOUnitNumber !== purchaseOrderItemData.OrderQuantity) {
                         itemStatus = 'Discrepancy';
                         statusReasons.push('Quantity mismatch with PO');
                     }
 
-                    if (supInvItemAmount !== purchaseOrderItemData.NetPriceAmount) {
+                    // Compare supInvItemAmount with purchaseOrderItemData.NetPriceAmount
+                    if (supInvItemAmountNumber !== netPriceAmountNumber) {
                         itemStatus = 'Discrepancy';
                         statusReasons.push('Amount mismatch with PO');
                     }
 
+                    // Check if materialItemData exists and compare quantities
                     if (!materialItemData) {
                         itemStatus = 'Discrepancy';
                         statusReasons.push('No matching Goods Receipt found');
-                    } else if (quantityPOUnit !== Number(materialItemData.QuantityInBaseUnit)) {
-                        itemStatus = 'Discrepancy';
-                        statusReasons.push('Quantity mismatch with GR');
+                    } else {
+                        const materialQuantityNumber = Number(materialItemData.QuantityInBaseUnit);
+                        if (quantityPOUnitNumber !== materialQuantityNumber) {
+                            itemStatus = 'Discrepancy';
+                            statusReasons.push('Quantity mismatch with GR');
+                        }
                     }
 
                     if (itemStatus !== 'Matched') {
                         allItemsMatched = false;
                         if (statusReasons.length > 0) {
-                            allStatusReasons.push(`Item ${sup_InvoiceItem}: ${statusReasons.join(', ')}`);
+                            allStatusReasons.push(`Item ${purchaseOrderItem}: ${statusReasons.join(', ')}`);
                         }
                     }
 
@@ -134,9 +152,9 @@ class InvCatalogService extends cds.ApplicationService {
                         ReferenceDocumentItem: materialItemData ? materialItemData.MaterialDocumentItem : "",
                         TaxCode: purchaseOrderItemData.TaxCode,
                         DocumentCurrency: purchaseOrderItemData.DocumentCurrency,
-                        SupplierInvoiceItemAmount: supInvItemAmount,
+                        SupplierInvoiceItemAmount: supInvItemAmount.toString(),
                         PurchaseOrderQuantityUnit: purchaseOrderItemData.PurchaseOrderQuantityUnit,
-                        QuantityInPurchaseOrderUnit: purchaseOrderItemData.OrderQuantity,
+                        QuantityInPurchaseOrderUnit: purchaseOrderItemData.OrderQuantity.toString(),
                     });
 
                     itemCounter += 10;
@@ -151,7 +169,7 @@ class InvCatalogService extends cds.ApplicationService {
                 await db.run(UPDATE(Invoice).set({ status: statusWithReasons }).where({ ID: ID }));
 
                 // Set the status in the result object
-                result.Status = statusWithReasons;
+                result.status = statusWithReasons;
 
                 // Send response
                 return result;
