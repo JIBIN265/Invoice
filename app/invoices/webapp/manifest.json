@@ -157,6 +157,19 @@
                       "sort": true,
                       "filter": true,
                       "column": true
+                    },
+                    "quickVariantSelection": {
+                      "paths": [
+                        {
+                          "annotationPath": "com.sap.vocabularies.UI.v1.SelectionVariant#SelectionVariantActive"
+                        },
+                        {
+                          "annotationPath": "com.sap.vocabularies.UI.v1.SelectionVariant#SelectionVariantExpired"
+                        },
+                        {
+                          "annotationPath": "com.sap.vocabularies.UI.v1.SelectionVariant#SelectionVariantAll"
+                        }
+                      ]
                     }
                   }
                 }

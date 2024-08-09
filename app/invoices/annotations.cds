@@ -2,6 +2,81 @@ using InvCatalogService as service from '../../srv/cat-service';
 
 annotate service.Invoice with @odata.draft.enabled;
 
+annotate service.Invoice with @(UI.LineItem: {
+    // #LineItemHighlight
+    ![@UI.Criticality]: statusColor.criticality, // Annotation, so that the row has a criticality
+    $value            : [
+        {
+            $Type : 'UI.DataFieldForAction',
+            Action: 'InvCatalogService.doThreeWayMatch',
+            Label : 'Check Three Way Match'
+        },
+        {
+            $Type: 'UI.DataField',
+            Label: 'Document ID',
+            Value: documentId,
+
+        },
+        {
+            $Type: 'UI.DataField',
+            Label: 'Fiscal Year',
+            Value: fiscalYear,
+
+        },
+        {
+            $Type: 'UI.DataField',
+            Label: 'Company Code',
+            Value: companyCode,
+        },
+        {
+            $Type: 'UI.DataField',
+            Label: 'Document Date',
+            Value: documentDate,
+        },
+        {
+            $Type: 'UI.DataField',
+            Label: 'Posting Date',
+            Value: postingDate,
+        },
+        {
+            $Type: 'UI.DataField',
+            Label: 'Supplier Invoice Party',
+            Value: supInvParty,
+        },
+        {
+            $Type: 'UI.DataField',
+            Label: 'Document Currency',
+            Value: documentCurrency,
+        },
+        {
+            $Type: 'UI.DataField',
+            Label: 'Invoice Gross Amount',
+            Value: invGrossAmount,
+        },
+        {
+            $Type: 'UI.DataField',
+            Label: 'Status Text',
+            Value: status,
+        // Criticality              : statusColor.criticality, //Supported values 0,1,2,3,5
+        //CriticalityRepresentation: #WithIcon,
+        },
+        {
+            $Type                    : 'UI.DataField',
+            Label                    : 'Status',
+            Value                    : statusFlag,
+            Criticality              : statusColor.criticality, //Supported values 0,1,2,3,5
+            CriticalityRepresentation: #WithIcon,
+        },
+        {
+            $Type: 'UI.DataField',
+            Label: 'Invoice Number',
+            Value: newInvoice,
+        },
+    ]
+},
+
+);
+
 annotate service.Invoice with @(
     UI.FieldGroup #GeneratedGroup: {
         $Type: 'UI.FieldGroupType',
@@ -48,6 +123,11 @@ annotate service.Invoice with @(
             },
             {
                 $Type: 'UI.DataField',
+                Label: 'Status Flag',
+                Value: statusFlag,
+            },
+            {
+                $Type: 'UI.DataField',
                 Label: 'Invoice Number',
                 Value: newInvoice,
             },
@@ -71,59 +151,6 @@ annotate service.Invoice with @(
             ID    : 'InvoiceItems',
             Target: 'to_InvoiceItem/@UI.LineItem#InvoiceItems',
         },
-    ],
-    UI.LineItem                  : [
-        {
-            $Type : 'UI.DataFieldForAction',
-            Action: 'InvCatalogService.doThreeWayMatch',
-            Label : 'Check Three Way Match'
-        },
-        {
-            $Type: 'UI.DataField',
-            Label: 'Fiscal Year',
-            Value: fiscalYear,
-        },
-        {
-            $Type: 'UI.DataField',
-            Label: 'Company Code',
-            Value: companyCode,
-        },
-        {
-            $Type: 'UI.DataField',
-            Label: 'Document Date',
-            Value: documentDate,
-        },
-        {
-            $Type: 'UI.DataField',
-            Label: 'Posting Date',
-            Value: postingDate,
-        },
-        {
-            $Type: 'UI.DataField',
-            Label: 'Supplier Invoice Party',
-            Value: supInvParty,
-        },
-        {
-            $Type: 'UI.DataField',
-            Label: 'Document Currency',
-            Value: documentCurrency,
-        },
-        {
-            $Type: 'UI.DataField',
-            Label: 'Invoice Gross Amount',
-            Value: invGrossAmount,
-        },
-        {
-            $Type: 'UI.DataField',
-            Label: 'Status',
-            Value: status,
-        },
-        {
-            $Type: 'UI.DataField',
-            Label: 'Invoice Number',
-            Value: newInvoice,
-        },
-
     ],
 );
 
@@ -306,10 +333,14 @@ annotate service.Invoice with @(UI.HeaderInfo: {
     Title         : {
         $Type: 'UI.DataField',
         Value: supInvParty,
+    //Criticality              : statusColor.criticality,
+    //CriticalityRepresentation: #WithIcon,
     },
     Description   : {
         $Type: 'UI.DataField',
         Value: fiscalYear,
+    //Criticality              : statusColor.criticality,
+    // CriticalityRepresentation: #WithIcon,
     },
 });
 
@@ -363,3 +394,73 @@ annotate service.InvoiceItem @(UI.FieldGroup #AdminData: {Data: [
     {Value: modifiedAt},
     {Value: modifiedBy}
 ]}, );
+
+//annotate service.Invoice @(Common: {SideEffects #statusChanged: {
+//  SourceProperties: [status],
+// TargetProperties: ['']
+//}});
+
+annotate service.Invoice with @(UI.PresentationVariant: {
+    // /RequestAtLeast     : [
+    //     'ID',
+    //     'pr_enabled',
+    //     'pdr_enabled'
+    // ],
+    SortOrder          : [ //Default sort order
+    {
+        Property  : documentId,
+        Descending: true
+    }, ],
+    ID                 : 'InvoicePresentationDefault',
+    Text               : '{Invoice}',
+    MaxItems           : 30,
+    // SelectionFields: [ID],
+    // Visualizations     : ['@UI.LineItem#Simplified'],
+    // ![@Common.Messages]: [
+
+    //],
+});
+annotate service.Invoice @(Common.SemanticKey: [ID,documentId
+
+]);
+
+annotate service.Invoice with @(
+    UI.SelectionVariant #SelectionVariantActive : {
+        ID           : 'SelectionVariantActiveID',
+        Text         : '{i18n>selectionVariantActive}',
+        SelectOptions: [ //Filtering of entity sets
+        {
+            PropertyName: statusFlag,
+            Ranges      : [{
+                Sign  : #I, //Include
+                Option: #EQ,
+                Low   : 'S',
+            }, ],
+        }, ],
+    },
+    UI.SelectionVariant #SelectionVariantExpired: {
+        ID           : 'SelectionVariantExpiredID',
+        Text         : '{i18n>selectionVariantExpired}',
+        SelectOptions: [{
+            PropertyName: statusFlag,
+            Ranges      : [{
+                Sign  : #I,
+                Option: #EQ, //Equals
+                Low   : 'E',
+            }, ],
+        }, ],
+    },
+    UI.SelectionVariant #SelectionVariantAll    : {
+        Text         : '{i18n>selectionVariantAll}',
+        ID           : 'SelectionVariantAllID',
+        SelectOptions: [{PropertyName: statusFlag}]
+    },
+);
+
+annotate service.Invoice with {
+    statusFlag  @title: 'Status'  @Common.Text: statusColor.value  @Common.TextArrangement: #TextOnly;
+};
+
+annotate service.StatusValues with {
+    code  @title: '{i18n>status}'  @Common.Text: value  @Common.TextArrangement: #TextOnly
+};

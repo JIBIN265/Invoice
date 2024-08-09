@@ -20,6 +20,10 @@ service InvCatalogService @(requires: 'authenticated-user') {
 
     entity Invoice                  as projection on persistence.InvoiceEntity
         actions {
+            @(
+                cds.odata.bindingparameter.name: '_it',
+                Common.SideEffects             : {TargetProperties: ['_it/status']}
+            )
             action doThreeWayMatch() returns {
                 FiscalYear : String(4);
                 CompanyCode : String(4);
@@ -56,4 +60,7 @@ service InvCatalogService @(requires: 'authenticated-user') {
         projection on gr.A_MaterialDocumentHeader {
             *
         };
+
+    @readonly
+    entity StatusValues             as projection on persistence.StatusValues;
 }

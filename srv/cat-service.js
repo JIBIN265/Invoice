@@ -1,5 +1,6 @@
 const cds = require("@sap/cds");
-const { SELECT, INSERT, UPDATE } = cds.ql;
+const { SELECT, UPDATE } = cds.ql;
+const SequenceHelper = require("./lib/SequenceHelper");
 
 class InvCatalogService extends cds.ApplicationService {
     async init() {
@@ -15,10 +16,31 @@ class InvCatalogService extends cds.ApplicationService {
         const db = await cds.connect.to("db");
         const pos = await cds.connect.to('CE_PURCHASEORDER_0001');
         const grs = await cds.connect.to('API_MATERIAL_DOCUMENT_SRV');
+        const NEW_STATUS = 'N';
+        const DRAFT_STATUS = 'D';
+        const FAILURE_STATUS = 'F';
+
+        this.before("NEW", Invoice.drafts, async (req) => {
+            // console.log(req.target.name)
+            if (req.target.name !== "InvCatalogService.Invoice.drafts") { return; }
+            const { ID } = req.data;
+            req.data.statusFlag = DRAFT_STATUS;
+           
+            const documentId = new SequenceHelper({
+                db: db,
+                sequence: "ZSUPPLIER_DOCUMENT_ID",
+                table: "zsupplier_InvoiceEntity",
+                field: "documentId",
+            });
+
+            let number = await documentId.getNextNumber();
+            req.data.documentId = number.toString();;
+
+        });
 
         this.on('doThreeWayMatch', 'Invoice', async req => {
             try {
-                console.log("Three way Verification Code Check");
+                console.log("Three-way Verification Code Check");
                 const { ID } = req.params[0];
                 if (!ID) {
                     return req.error(400, "Invoice ID is required");
@@ -37,7 +59,7 @@ class InvCatalogService extends cds.ApplicationService {
                 }
 
                 let allItemsMatched = true;
-                let itemCounter = 10;
+                let itemCounter = 1;
                 let allStatusReasons = [];
                 let result = {
                     FiscalYear: "",
@@ -98,11 +120,6 @@ class InvCatalogService extends cds.ApplicationService {
                     const supInvItemAmountNumber = Number(supInvItemAmount);
                     const netPriceAmountNumber = Number(purchaseOrderItemData.NetPriceAmount);
 
-                    // Initialize statusReasons if not already initialized
-                    if (!Array.isArray(statusReasons)) {
-                        statusReasons = [];
-                    }
-
                     // Compare quantityPOUnit with purchaseOrderItemData.OrderQuantity
                     if (quantityPOUnitNumber !== purchaseOrderItemData.OrderQuantity) {
                         itemStatus = 'Discrepancy';
@@ -121,9 +138,13 @@ class InvCatalogService extends cds.ApplicationService {
                         statusReasons.push('No matching Goods Receipt found');
                     } else {
                         const materialQuantityNumber = Number(materialItemData.QuantityInBaseUnit);
-                        if (quantityPOUnitNumber !== materialQuantityNumber) {
+                        if (quantityPOUnitNumber > materialQuantityNumber) {
                             itemStatus = 'Discrepancy';
-                            statusReasons.push('Quantity mismatch with GR');
+                            statusReasons.push('Quantity mismatch with GR (Partial delivery)');
+                        }
+                        if (quantityPOUnitNumber < materialQuantityNumber) {
+                            itemStatus = 'Discrepancy';
+                            statusReasons.push('Quantity mismatch with GR (Over-delivery)');
                         }
                     }
 
@@ -157,22 +178,25 @@ class InvCatalogService extends cds.ApplicationService {
                         QuantityInPurchaseOrderUnit: purchaseOrderItemData.OrderQuantity.toString(),
                     });
 
-                    itemCounter += 10;
+                    itemCounter += 1;
                 }
 
                 // Determine overall invoice status and update the database
                 const overallStatus = allItemsMatched ? 'Matched' : 'Discrepancy';
                 let statusWithReasons = overallStatus;
+                let failFlag = 'S';
+
                 if (overallStatus === 'Discrepancy') {
                     statusWithReasons += `: ${allStatusReasons.join('; ')}`;
                 }
-                await db.run(UPDATE(Invoice).set({ status: statusWithReasons }).where({ ID: ID }));
+                const overallStatusFlag = failFlag ? 'E' : 'S';
+                await db.run(UPDATE(Invoice).set({ status: statusWithReasons, statusFlag: overallStatusFlag }).where({ ID: ID }));
 
                 // Set the status in the result object
                 result.status = statusWithReasons;
 
                 // Send response
-                return result;
+                return req.reply(result);
 
             } catch (error) {
                 console.error("Unexpected error in doThreeWayMatch:", error);
